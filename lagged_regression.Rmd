@@ -1,0 +1,173 @@
+---
+output: pdf_document
+---
+# Assignment 2 - Answer questions 1 - 8 in the space below. 
+
+For this assignment include all your R code in this R Markdown file to support your answer. Your code goes in the code "chunks" below. If you open this file in RStudio then you can run all the R code by clicking on the `Knit HTML` button. You can experiment with code in the R console and then paste your code into this document, or write it directly in this document and send it over to the console with the keyboard shortcut `command+enter` or `control+enter`.
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. 
+
+
+##Forecasting 
+Develop a forecasting model using the Consumer Confidence Index dataset using data till 2012 and test the model on the remaining data till June 2016. Your goal is to have the highest possible predictive accuracy (for your forecasts). Use a step by step model building process that justifies your final chosen model. 
+
+a) (6 points) your chosen model with its performance characteristics and the process that led to the chosen model, and
+
+
+```{r}
+tics<-read.csv("TheIndexofConsumerSentiment.csv")
+View(tics)
+tics$t <- seq(1,438)
+View(tics)
+plot(tics$t, tics$Index, type="l")
+reg1<-lm(tics$Index~tics$t)
+summary(reg1)
+reg1.rmse <- sqrt(mean((reg1$residuals)^2))
+reg1.rmse
+
+lines(fitted(reg1), col="purple")
+yvalauesToDdisplay <- cbind(tics$Index, predict(reg1))
+xyvalauesToDdisplay <- cbind(tics$t, tics$t)
+
+matplot(xyvalauesToDdisplay,yvalauesToDdisplay, type="l" )
+plot(tics$t, reg1$residuals, type = "l")
+tics$tsquare <- tics$t^2
+View(tics)
+reg2<-lm(tics$Index~tics$t+tics$tsquare)
+summary(reg2)
+reg2.rmse <- sqrt(mean((reg2$residuals)^2))
+reg2.rmse
+
+#combined plot
+plot(tics$t, tics$Index, type="l")
+lines(fitted(reg2), col="purple")
+
+
+#plot residuals
+plot(tics$t, reg2$residuals, type = "l")
+
+#add seasonality by converting month to a factor
+tics$monthFactor <- factor(tics$Month)
+class(tics$monthFactor)
+
+#run model 3 with seasonality
+reg3<-lm(tics$Index~tics$t+tics$tsquare+tics$monthFactor)
+summary(reg3)
+#rmse
+reg3.rmse <- sqrt(mean((reg3$residuals)^2))
+reg3.rmse 
+
+#combined plot
+lines(fitted(reg3), col="red")
+print(acf(tics$Index))
+
+#check autocorrelation
+print(acf(tics$Index))
+
+#add a lagged resposne variable to the regression
+#lagged y_t-1 is coded as amtrac$Ridership[2:159]
+
+reg4<-lm(tics$Index[1:437]~tics$Index[2:438]+tics$t[1:437]+tics$tsquare[1:437]+tics$monthFactor[1:437])
+summary(reg4)
+
+#rmse
+reg4.rmse <- sqrt(mean((reg4$residuals)^2))
+reg4.rmse
+#combined plot
+plot(tics$t, tics$Index, type="l")
+lines(fitted(reg4), col="green")
+
+#plot residuals
+plot(tics$t[1:437], reg4$residuals, type = "l")
+
+#check autocorrelation
+print(acf(tics$Index))
+
+#check partial autocorrelation
+#Note: suppose you have 3 points in a time series x3 - x2 - x1. 
+#Using ACF you would generally find the correlation between x1 and x2 ,
+#for example. The value of correlation thus obtained is technically 
+#not true value of correlation, because the value of x2 is likely
+#to be inspired by the value of x3. 
+
+#So PACF is that portion of the correlation between x1 and x2, 
+#which is not explained by the correlation between x3 in x2.
+
+
+print(pacf(tics$Index))
+
+#########################################################################################################
+
+#create t, tsquare, and factor month
+
+tics$t <- seq(1,438)
+tics$tsquare <- tics$t^2
+tics$monthFactor <- factor(tics$Month)
+
+#addlagged variable as a new column
+#lag a variable by 1 time unit using package "DataCombine" that should be installed
+#install.packages("DataCombine")
+library(DataCombine)
+
+#create a new data frame that will have 'Ridership-1' as an additional column
+newLaggedtics <- slide(tics, Var = "Index", slideBy = -1)
+#change name of new column from 'Index-1' to lag1Index
+names(newLaggedtics)[7]<-"lag1Index"
+
+#save dataframe in file
+write.table(newLaggedtics, file = "laggedtics.csv", sep = ",")
+
+#create new training dataframe called 'trnSet' using rows 1 to 409
+trnSet<-newLaggedtics[1:420,]
+
+#create new validation dataframe called 'valSet' using rows 141 to 159
+valSet<-newLaggedtics[421:438,]
+
+#fit 'full' regression model with lag, seasonality, trend and quadratic trend on training
+#use first 140 rows
+rTrn2<- lm(Index~lag1Index+t+tsquare+monthFactor, data=trnSet)
+summary(rTrn2)
+
+#predict on training and test set, latter being key
+predTrn <- predict(rTrn2, newdata=trnSet )
+predTst <- predict(rTrn2, newdata=valSet )
+
+predTrn
+predTst
+
+#plot original ridership data
+plot(tics$t, tics$Index, type="l")
+
+
+#plot predcited training set values
+yvalauesToDdisplay <- predTrn
+xyvalauesToDdisplay <- 1:420
+lines(xyvalauesToDdisplay,yvalauesToDdisplay,  type="l" , col="purple" )
+
+#plot predicted test set value
+yvalauesToDdisplay <- predTst
+xyvalauesToDdisplay <- 421:438
+lines(xyvalauesToDdisplay,yvalauesToDdisplay,  type="l" , col="green" )
+
+#compute RMSE
+regTrn2.rmse <- sqrt(mean((tics$Index[421:438]-predTst)^2,  na.rm=TRUE))
+regTrn2.rmse
+#eureka -- this is a great model -- RMSE is 48!
+
+
+###############################################################################################################
+
+```
+
+b) (4 points) what story can you draw from your analysis about consumer sentiment over the last three decades. 
+
+#There is a peak in the consumer sentiment around the Years 1998, 1999 and 2000. This means that during this period of 3 years, the consumers were most satisfied. Another observation is that if the other predictors are constant, the consumers are mostly satisfied during the month of January as all the other Beta values are negative as seen in summary of Model 3 with seasonality. Another important observation is that R square increase sharply from 39% to 92% on adding the lag variable. This implies that the Consumer Sentiment depends greatly on the previous sentiments or sentiment in the past. The Beta values of the Trend variable(t and t-square) cannot be interpreted. There is Quadratic Trend with additive Seasonality. There is no upward or downward trend in the COnsumer Sentiment over the last three decades. But there is definitely a seasonal trend within the months of the year. This seasonlaity is appx over a period of six years. In a period of 6 years, the consumer centiment goes from low to high and then drops to low again similar to a sine curve.    
+
+
+## Prepare for the live case by studying the B2B travel management industry at large, and by examining the files titled "UofM Data fields..." and "<Industry> Code Reference Document" in the live case section of the class' Moodle.
+
+Think about two questions that are related to the context and/or the data that you will bring up to your group prior to 8/15 kickoff. Then jointly meet with your group to consolidate this list and bring forward to CWT and McKinsey consultants on 8/15.
+
+

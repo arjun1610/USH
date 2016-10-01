@@ -1,0 +1,17 @@
+0	Park_ID	q
+1	Direction_Of_Wind	q
+2	Average_Breeze_Speed	q
+3	Max_Breeze_Speed	q
+4	Min_Breeze_Speed	q
+5	Var1	q
+6	Average_Atmospheric_Pressure	q
+7	Max_Atmospheric_Pressure	q
+8	Min_Atmospheric_Pressure	q
+9	Min_Ambient_Pollution	q
+10	Max_Ambient_Pollution	q
+11	Average_Moisture_In_Park	q
+12	Max_Moisture_In_Park	q
+13	Min_Moisture_In_Park	q
+14	Location_Type	q
+15	Month	q
+16	Day	q
