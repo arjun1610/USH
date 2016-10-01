@@ -13,5 +13,9 @@
 12	Max_Moisture_In_Park	q
 13	Min_Moisture_In_Park	q
 14	Location_Type	q
-15	Month	q
-16	Day	q
+15	WeekOfYear	q
+16	WeekDay	q
+17	Diff_Breeze_Speed	q
+18	Diff_Atmospheric_Pressure	q
+19	Diff_Ambient_Pollution	q
+20	Diff_Moisture_In_Park	q
